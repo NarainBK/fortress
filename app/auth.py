@@ -1,0 +1,81 @@
+"""
+Authentication module for Fortress.
+Implements bcrypt password hashing and TOTP-based MFA.
+"""
+import pyotp
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from typing import Optional
+from sqlmodel import Session, select
+
+from app.models import User, engine
+
+# Password hashing context (bcrypt)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Session timeout (15 mins)
+SESSION_TIMEOUT_MINUTES = 15
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against its hash."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def generate_totp_secret() -> str:
+    """Generate a new TOTP secret for MFA."""
+    return pyotp.random_base32()
+
+def get_totp_uri(secret: str, username: str) -> str:
+    """Generate a TOTP provisioning URI for QR code generation."""
+    return pyotp.totp.TOTP(secret).provisioning_uri(
+        name=username,
+        issuer_name="Fortress"
+    )
+
+def verify_totp(secret: str, code: str) -> bool:
+    """Verify a TOTP code."""
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code)
+
+def get_current_totp(secret: str) -> str:
+    """Get the current TOTP code (for testing/debugging)."""
+    totp = pyotp.TOTP(secret)
+    return totp.now()
+
+def authenticate_user(username: str, password: str) -> Optional[User]:
+    """
+    First factor authentication: Verify username and password.
+    Returns User if valid, None otherwise.
+    """
+    with Session(engine) as session:
+        statement = select(User).where(User.username == username)
+        user = session.exec(statement).first()
+        if user and verify_password(password, user.password_hash):
+            return user
+    return None
+
+def is_session_valid(session_created_at: datetime) -> bool:
+    """Check if session is still valid (if it is within 15 minute timeout)."""
+    if session_created_at is None:
+        return False
+    expiry_time = session_created_at + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
+    return datetime.utcnow() < expiry_time
+
+def create_user(username: str, password: str, role: str, public_key_path: str = None) -> User:
+    """Create a new user with hashed password and TOTP secret."""
+    with Session(engine) as session:
+        totp_secret = generate_totp_secret()
+        user = User(
+            username=username,
+            password_hash=hash_password(password),
+            role=role,
+            totp_secret=totp_secret,
+            public_key_path=public_key_path
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
