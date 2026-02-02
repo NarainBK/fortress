@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Fortress{% endblock %}
+
+{% block content %}
+<div style="margin-top: 30px;">
+    <h1 style="margin-bottom: 30px;">📦 Artifact Vault</h1>
+
+    <div class="card">
+        <h2 class="card-title">Uploaded Artifacts</h2>
+
+        {% if artifacts %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Hash (SHA-256)</th>
+                    <th>Status</th>
+                    <th>Uploaded</th>
+                    {% if user.role.value == 'manager' %}
+                    <th>Actions</th>
+                    {% endif %}
+                    <th>QR Code</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for artifact in artifacts %}
+                <tr>
+                    <td>{{ artifact.filename }}</td>
+                    <td style="font-family: monospace; font-size: 0.85rem;">
+                        {{ artifact.file_hash[:16] }}...
+                    </td>
+                    <td>
+                        {% if artifact.status.value == 'approved' %}
+                        <span class="badge badge-approved">✅ Approved</span>
+                        {% elif artifact.status.value == 'rejected' %}
+                        <span class="badge badge-rejected">❌ Rejected</span>
+                        {% else %}
+                        <span class="badge badge-pending">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ artifact.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    {% if user.role.value == 'manager' %}
+                    <td>
+                        {% if artifact.status.value == 'pending' %}
+                        <form method="POST" action="/approve/{{ artifact.id }}" style="display: inline;">
+                            <button type="submit" class="btn btn-success"
+                                style="padding: 6px 12px; font-size: 0.85rem;">
+                                Approve
+                            </button>
+                        </form>
+                        {% else %}
+                        <span style="color: #6b7280;">—</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                    <td>
+                        <a href="/qr/{{ artifact.id }}" target="_blank" style="color: #60a5fa;">
+                            View QR
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #9ca3af; text-align: center; padding: 40px;">
+            No artifacts uploaded yet.
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
