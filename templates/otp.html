@@ -1,34 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}Verify OTP - Fortress{% endblock %}
+{% block title %}Security Checkpoint - Fortress{% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <div class="login-header">
-        <h1>🔐 Two-Factor Auth</h1>
-        <p>Enter the 6-digit code from your authenticator app</p>
-    </div>
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Security Icon -->
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🛡️</div>
 
-    <div class="card">
-        <h2 class="card-title">Hello, {{ username }}</h2>
+        <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Security Checkpoint</h1>
+        <p class="auth-subtitle">Two-Factor Authentication</p>
 
-        {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST" action="/verify-otp">
-            <div class="form-group">
-                <label class="form-label" for="otp_code">OTP Code</label>
-                <input type="text" id="otp_code" name="otp_code" class="form-control" maxlength="6" pattern="[0-9]{6}"
-                    placeholder="000000" required style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;">
+        <!-- OTP Card -->
+        <div class="glass-card">
+            <div class="glass-card-title">
+                <span>📱</span>
+                <span>Verification Code</span>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Verify</button>
-        </form>
+            <p class="text-muted mb-md" style="font-size: 0.9rem;">
+                Hello, <span class="text-neon">{{ username }}</span>. Enter the 6-digit code from your authenticator
+                app.
+            </p>
 
-        <p style="margin-top: 20px; text-align: center; color: #9ca3af;">
-            <a href="/" style="color: #60a5fa;">← Back to login</a>
-        </p>
+            {% if error %}
+            <div class="alert alert-error">
+                <span>⚠️</span>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/verify-otp" class="auth-form">
+                <div class="form-group">
+                    <input type="text" id="otp_code" name="otp_code" class="form-control otp-input" maxlength="6"
+                        pattern="[0-9]{6}" placeholder="000000" autocomplete="one-time-code" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">
+                    Verify Identity
+                </button>
+            </form>
+
+            <div class="mt-lg text-center">
+                <a href="/" class="text-muted" style="font-size: 0.85rem;">
+                    ← Return to login
+                </a>
+            </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="mt-lg" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <span class="pulse-dot"></span>
+            <span class="text-muted" style="font-size: 0.75rem;">Secure session active</span>
+        </div>
     </div>
 </div>
 {% endblock %}
