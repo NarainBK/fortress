@@ -9,3 +9,4 @@ pyotp
 qrcode[pil]
 bcrypt
 passlib[bcrypt]
+requests

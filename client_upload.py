@@ -5,9 +5,13 @@ Simulates the "Supply Chain Source" for secure artifact uploads.
 import sys
 import base64
 import hashlib
+import requests
 from pathlib import Path
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+
+# Server configuration
+SERVER_URL = "http://localhost:8000"
 
 def calculate_file_hash(file_path: str) -> str:
     """Calculate SHA-256 hash of a file."""
@@ -73,6 +77,26 @@ def main():
     private_key = load_private_key(private_key_path)
     signature_b64 = sign_hash(private_key, file_hash.encode())
     print(f"      Signature generated successfully")
+    
+    # Step 4: Upload to server
+    print(f"[4/4] Uploading to server...")
+    payload = {
+        "filename": Path(file_path).name,
+        "file_b64": file_b64,
+        "signature": signature_b64,
+        "hash": file_hash
+    }
+    
+    try:
+        response = requests.post(f"{SERVER_URL}/upload", json=payload)
+        if response.status_code == 200:
+            print(f"      Upload successful!")
+            print(f"      Response: {response.json()}")
+        else:
+            print(f"      Upload failed: {response.status_code}")
+            print(f"      Response: {response.text}")
+    except requests.exceptions.ConnectionError:
+        print(f"      Error: Could not connect to server at {SERVER_URL}")
 
 if __name__ == "__main__":
     main()
