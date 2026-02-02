@@ -106,3 +106,25 @@ async def verify_otp_route(request: Request, otp_code: str = Form(...)):
         request.session["session_created"] = datetime.utcnow().isoformat()
         
         return RedirectResponse(url="/dashboard", status_code=302)
+
+@app.get("/dashboard")
+async def dashboard(request: Request):
+    """Main dashboard - requires authentication."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/", status_code=302)
+    
+    with Session(engine) as db:
+        artifacts = db.exec(select(Artifact)).all()
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": user,
+        "artifacts": artifacts
+    })
+
+@app.get("/logout")
+async def logout(request: Request):
+    """Clear session and logout."""
+    request.session.clear()
+    return RedirectResponse(url="/", status_code=302)
