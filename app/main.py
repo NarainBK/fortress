@@ -82,3 +82,27 @@ async def login(request: Request, username: str = Form(...), password: str = For
         "request": request,
         "username": user.username
     })
+
+@app.post("/verify-otp")
+async def verify_otp_route(request: Request, otp_code: str = Form(...)):
+    """Step 2: Verify TOTP code."""
+    pending_user_id = request.session.get("pending_user_id")
+    if not pending_user_id:
+        return RedirectResponse(url="/", status_code=302)
+    
+    with Session(engine) as db:
+        user = db.get(User, pending_user_id)
+        if not user or not verify_totp(user.totp_secret, otp_code):
+            return templates.TemplateResponse("otp.html", {
+                "request": request,
+                "username": request.session.get("pending_username"),
+                "error": "Invalid OTP code"
+            })
+        
+        # Clear pending and set authenticated session
+        request.session.pop("pending_user_id", None)
+        request.session.pop("pending_username", None)
+        request.session["user_id"] = user.id
+        request.session["session_created"] = datetime.utcnow().isoformat()
+        
+        return RedirectResponse(url="/dashboard", status_code=302)
