@@ -220,3 +220,32 @@ async def approve_artifact(request: Request, artifact_id: int):
         db.commit()
     
     return {"status": "success", "message": f"Artifact {artifact_id} approved"}
+
+# --- QR Code Endpoint ---
+import qrcode
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+
+@app.get("/qr/{artifact_id}")
+async def generate_qr(request: Request, artifact_id: int):
+    """Generate QR code containing artifact hash."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/", status_code=302)
+    
+    with Session(engine) as db:
+        artifact = db.get(Artifact, artifact_id)
+        if not artifact:
+            return {"error": "Artifact not found"}
+        
+        # Generate QR code with hash
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(artifact.file_hash)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Return as image
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+        return StreamingResponse(buffer, media_type="image/png")
