@@ -3,32 +3,49 @@
 {% block title %}Login - Fortress{% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <div class="login-header">
-        <h1>🏰 Fortress</h1>
-        <p>Secure Software Supply Chain Vault</p>
-    </div>
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Logo & Title -->
+        <div class="auth-logo">FORTRESS</div>
+        <p class="auth-subtitle">Secure Supply Chain Vault</p>
 
-    <div class="card">
-        <h2 class="card-title">Sign In</h2>
-
-        {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST" action="/login">
-            <div class="form-group">
-                <label class="form-label" for="username">Username</label>
-                <input type="text" id="username" name="username" class="form-control" required>
+        <!-- Login Card -->
+        <div class="glass-card">
+            <div class="glass-card-title">
+                <span>🔐</span>
+                <span>Authentication Required</span>
             </div>
 
-            <div class="form-group">
-                <label class="form-label" for="password">Password</label>
-                <input type="password" id="password" name="password" class="form-control" required>
+            {% if error %}
+            <div class="alert alert-error">
+                <span>⚠️</span>
+                <span>{{ error }}</span>
             </div>
+            {% endif %}
 
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Continue</button>
-        </form>
+            <form method="POST" action="/login" class="auth-form">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control"
+                        placeholder="Enter your username" autocomplete="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control"
+                        placeholder="Enter your password" autocomplete="current-password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full mt-md">
+                    Continue →
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-muted mt-lg" style="font-size: 0.8rem;">
+            Secured with MFA • NIST SP 800-63-2 Compliant
+        </p>
     </div>
 </div>
 {% endblock %}
