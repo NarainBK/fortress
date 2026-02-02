@@ -2,27 +2,24 @@
 Authentication module for Fortress.
 Implements bcrypt password hashing and TOTP-based MFA.
 """
+import bcrypt
 import pyotp
-from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import User, engine
 
-# Password hashing context (bcrypt)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 # Session timeout (15 mins)
 SESSION_TIMEOUT_MINUTES = 15
 
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt."""
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def generate_totp_secret() -> str:
     """Generate a new TOTP secret for MFA."""
