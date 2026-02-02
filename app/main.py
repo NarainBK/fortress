@@ -5,12 +5,14 @@ Main FastAPI Application
 import os
 import base64
 import hashlib
+import qrcode
+from io import BytesIO
 from pathlib import Path
 from datetime import datetime
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from starlette.middleware.sessions import SessionMiddleware
 from sqlmodel import Session, select
 from pydantic import BaseModel
@@ -222,10 +224,6 @@ async def approve_artifact(request: Request, artifact_id: int):
     return {"status": "success", "message": f"Artifact {artifact_id} approved"}
 
 # --- QR Code Endpoint ---
-import qrcode
-from io import BytesIO
-from fastapi.responses import StreamingResponse
-
 @app.get("/qr/{artifact_id}")
 async def generate_qr(request: Request, artifact_id: int):
     """Generate QR code containing artifact hash."""
