@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+sqlalchemy
+sqlmodel
+cryptography
+pyotp
+qrcode[pil]
+bcrypt
+passlib[bcrypt]
