@@ -1,8 +1,8 @@
 import os
 import hashlib
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization, hashes
 
 class CryptoUtils:
     """
@@ -120,3 +120,52 @@ class CryptoUtils:
         """Loads Public Key from a PEM file."""
         with open(file_path, "rb") as f:
             return serialization.load_pem_public_key(f.read())
+
+    @staticmethod
+    def sign_data(private_key, data: bytes) -> bytes:
+        """
+        Signs data using the RSA Private Key (RSA-PSS with SHA-256).
+        
+        Args:
+            private_key: The RSA private key.
+            data: The data to sign.
+            
+        Returns:
+            The digital signature (bytes).
+        """
+        signature = private_key.sign(
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return signature
+
+    @staticmethod
+    def verify_signature(public_key, data: bytes, signature: bytes) -> bool:
+        """
+        Verifies a digital signature (RSA-PSS with SHA-256).
+        
+        Args:
+            public_key: The RSA public key.
+            data: The original data that was signed.
+            signature: The signature to verify.
+            
+        Returns:
+            True if valid, False otherwise.
+        """
+        try:
+            public_key.verify(
+                signature,
+                data,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+            return True
+        except Exception:
+            return False
