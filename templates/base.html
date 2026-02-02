@@ -1,31 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Fortress{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
     {% if user %}
+    <!-- Fixed Glassmorphism Navbar -->
     <nav class="navbar">
-        <a href="/dashboard" class="navbar-brand">🏰 Fortress</a>
-        <ul class="navbar-nav">
-            <li><a href="/dashboard" class="nav-link">Dashboard</a></li>
-            {% if user.role.value == 'manager' %}
-            <li><a href="#" class="nav-link">Approvals</a></li>
-            {% endif %}
-            {% if user.role.value == 'auditor' %}
-            <li><a href="#" class="nav-link">Audit Logs</a></li>
-            {% endif %}
-            <li><span class="nav-link">{{ user.username }} ({{ user.role.value }})</span></li>
-            <li><a href="/logout" class="nav-link">Logout</a></li>
-        </ul>
+        <div class="navbar-inner">
+            <a href="/dashboard" class="navbar-brand">
+                <span class="logo-icon">🏰</span>
+                <span>FORTRESS</span>
+            </a>
+
+            <ul class="navbar-nav">
+                <li><a href="/dashboard" class="nav-link">Dashboard</a></li>
+                {% if user.role.value == 'manager' %}
+                <li><a href="#" class="nav-link">Approvals</a></li>
+                {% endif %}
+                {% if user.role.value == 'auditor' %}
+                <li><a href="#" class="nav-link">Audit Logs</a></li>
+                {% endif %}
+                <li>
+                    <div class="nav-user">
+                        <span>{{ user.username }}</span>
+                        <span class="role-badge">{{ user.role.value }}</span>
+                    </div>
+                </li>
+                <li><a href="/logout" class="btn btn-ghost btn-sm">Logout</a></li>
+            </ul>
+        </div>
     </nav>
     {% endif %}
 
-    <main class="container">
+    <main class="{% if user %}main-content{% endif %}">
         {% block content %}{% endblock %}
     </main>
 </body>
+
 </html>
