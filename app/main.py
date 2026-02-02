@@ -128,3 +128,72 @@ async def logout(request: Request):
     """Clear session and logout."""
     request.session.clear()
     return RedirectResponse(url="/", status_code=302)
+
+# --- Upload Endpoint ---
+from pydantic import BaseModel
+import base64
+
+class UploadPayload(BaseModel):
+    filename: str
+    file_b64: str
+    signature: str
+    hash: str
+
+@app.post("/upload")
+async def upload_artifact(request: Request, payload: UploadPayload):
+    """
+    Receive artifact from Developer CLI.
+    Verifies signature, checks integrity, encrypts, and stores.
+    """
+    from app.crypto_utils import CryptoUtils
+    from app.models import UserRole, ArtifactStatus
+    
+    user = get_current_user(request)
+    if not user or user.role != UserRole.DEVELOPER:
+        return {"error": "Unauthorized. Developer role required."}
+    
+    # Decode file content
+    try:
+        file_content = base64.b64decode(payload.file_b64)
+        signature = base64.b64decode(payload.signature)
+    except Exception:
+        return {"error": "Invalid Base64 encoding"}
+    
+    # Verify integrity: re-calculate hash
+    import hashlib
+    calculated_hash = hashlib.sha256(file_content).hexdigest()
+    if calculated_hash != payload.hash:
+        return {"error": "Integrity check failed. Hash mismatch."}
+    
+    # Verify signature using developer's public key
+    if not user.public_key_path:
+        return {"error": "No public key registered for this user"}
+    
+    public_key = CryptoUtils.load_public_key(user.public_key_path)
+    if not CryptoUtils.verify_signature(public_key, payload.hash.encode(), signature):
+        return {"error": "Signature verification failed"}
+    
+    # Encrypt and save
+    aes_key = CryptoUtils.generate_aes_key()
+    nonce, ciphertext = CryptoUtils.encrypt_data(file_content, aes_key)
+    
+    storage_filename = f"{payload.hash[:16]}_{payload.filename}.enc"
+    storage_path = BASE_DIR / "storage" / storage_filename
+    
+    with open(storage_path, "wb") as f:
+        f.write(nonce + aes_key + ciphertext)  # Store nonce + key + data
+    
+    # Save to DB
+    with Session(engine) as db:
+        artifact = Artifact(
+            filename=payload.filename,
+            file_hash=payload.hash,
+            signature=payload.signature,
+            storage_path=str(storage_path),
+            uploader_id=user.id,
+            status=ArtifactStatus.PENDING
+        )
+        db.add(artifact)
+        db.commit()
+    
+    return {"status": "success", "message": "Artifact uploaded and encrypted"}
