@@ -1,6 +1,8 @@
 import os
 import hashlib
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 
 class CryptoUtils:
     """
@@ -63,3 +65,58 @@ class CryptoUtils:
     def generate_aes_key() -> bytes:
         """Generates a random 256-bit AES key."""
         return AESGCM.generate_key(bit_length=256)
+
+    @staticmethod
+    def generate_rsa_key_pair():
+        """
+        Generates an RSA private/public key pair (2048-bit).
+        
+        Returns:
+            private_key: The RSA private key object.
+            public_key: The RSA public key object.
+        """
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+        return private_key, private_key.public_key()
+
+    @staticmethod
+    def save_key_to_file(key, file_path: str, is_private: bool = False) -> None:
+        """
+        Saves an RSA key to a PEM file.
+        
+        Args:
+            key: The key object (private/public).
+            file_path: Absolute path to save the key.
+            is_private: Boolean indicating if it's a private key.
+        """
+        if is_private:
+            pem = key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+        else:
+            pem = key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+        
+        with open(file_path, "wb") as f:
+            f.write(pem)
+
+    @staticmethod
+    def load_private_key(file_path: str):
+        """Loads Private Key from a PEM file."""
+        with open(file_path, "rb") as f:
+            return serialization.load_pem_private_key(
+                f.read(),
+                password=None,
+            )
+
+    @staticmethod
+    def load_public_key(file_path: str):
+        """Loads Public Key from a PEM file."""
+        with open(file_path, "rb") as f:
+            return serialization.load_pem_public_key(f.read())
