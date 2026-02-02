@@ -60,3 +60,25 @@ async def home(request: Request):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.post("/login")
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    """Step 1: Verify username and password."""
+    user = authenticate_user(username, password)
+    if not user:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Invalid credentials"
+        })
+    
+    # Store user_id temporarily for OTP verification
+    request.session["pending_user_id"] = user.id
+    request.session["pending_username"] = user.username
+    
+    # Debug: print TOTP (remove in production)
+    print(f"[DEBUG] TOTP for {user.username}: {get_current_totp(user.totp_secret)}")
+    
+    return templates.TemplateResponse("otp.html", {
+        "request": request,
+        "username": user.username
+    })
