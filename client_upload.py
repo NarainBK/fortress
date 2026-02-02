@@ -6,6 +6,8 @@ import sys
 import base64
 import hashlib
 from pathlib import Path
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 
 def calculate_file_hash(file_path: str) -> str:
     """Calculate SHA-256 hash of a file."""
@@ -19,6 +21,23 @@ def read_file_as_base64(file_path: str) -> str:
     """Read file and return Base64 encoded content."""
     with open(file_path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
+
+def load_private_key(key_path: str):
+    """Load RSA private key from PEM file."""
+    with open(key_path, "rb") as f:
+        return serialization.load_pem_private_key(f.read(), password=None)
+
+def sign_hash(private_key, hash_bytes: bytes) -> str:
+    """Sign hash using RSA-PSS and return Base64 encoded signature."""
+    signature = private_key.sign(
+        hash_bytes,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return base64.b64encode(signature).decode("utf-8")
 
 def main():
     """Main CLI entry point."""
@@ -48,6 +67,12 @@ def main():
     print(f"[2/4] Encoding file to Base64...")
     file_b64 = read_file_as_base64(file_path)
     print(f"      Size: {len(file_b64)} bytes (encoded)")
+    
+    # Step 3: Sign the hash
+    print(f"[3/4] Signing hash with private key...")
+    private_key = load_private_key(private_key_path)
+    signature_b64 = sign_hash(private_key, file_hash.encode())
+    print(f"      Signature generated successfully")
 
 if __name__ == "__main__":
     main()
