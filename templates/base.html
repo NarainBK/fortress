@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fortress{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    {% if user %}
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">🏰 Fortress</a>
+        <ul class="navbar-nav">
+            <li><a href="/dashboard" class="nav-link">Dashboard</a></li>
+            {% if user.role.value == 'manager' %}
+            <li><a href="#" class="nav-link">Approvals</a></li>
+            {% endif %}
+            {% if user.role.value == 'auditor' %}
+            <li><a href="#" class="nav-link">Audit Logs</a></li>
+            {% endif %}
+            <li><span class="nav-link">{{ user.username }} ({{ user.role.value }})</span></li>
+            <li><a href="/logout" class="nav-link">Logout</a></li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
