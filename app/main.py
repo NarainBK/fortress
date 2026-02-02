@@ -4,12 +4,16 @@ Main FastAPI Application
 """
 import os
 from pathlib import Path
-from fastapi import FastAPI, Request
+from datetime import datetime
+from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
+from sqlmodel import Session, select
 
-from app.models import init_db
+from app.models import init_db, User, Artifact, engine
+from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp
 
 # --- App Setup ---
 app = FastAPI(title="Fortress", description="Secure Artifact Vault")
@@ -30,6 +34,23 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+# --- Auth Dependency ---
+def get_current_user(request: Request):
+    """Get current authenticated user from session."""
+    user_id = request.session.get("user_id")
+    session_created = request.session.get("session_created")
+    
+    if not user_id or not session_created:
+        return None
+    
+    created_at = datetime.fromisoformat(session_created)
+    if not is_session_valid(created_at):
+        request.session.clear()
+        return None
+    
+    with Session(engine) as db:
+        return db.get(User, user_id)
 
 # --- Basic Routes ---
 @app.get("/")
