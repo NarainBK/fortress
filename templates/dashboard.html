@@ -3,71 +3,167 @@
 {% block title %}Dashboard - Fortress{% endblock %}
 
 {% block content %}
-<div style="margin-top: 30px;">
-    <h1 style="margin-bottom: 30px;">📦 Artifact Vault</h1>
+<div class="container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="dashboard-title">
+            <h1>Welcome, <span class="text-neon">{{ user.username }}</span></h1>
+        </div>
+        <div class="system-status">
+            <span class="pulse-dot"></span>
+            <span>System Online</span>
+        </div>
+    </div>
 
-    <div class="card">
-        <h2 class="card-title">Uploaded Artifacts</h2>
+    <!-- Bento Grid Layout -->
+    <div class="bento-grid">
 
-        {% if artifacts %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Filename</th>
-                    <th>Hash (SHA-256)</th>
-                    <th>Status</th>
-                    <th>Uploaded</th>
-                    {% if user.role.value == 'manager' %}
-                    <th>Actions</th>
-                    {% endif %}
-                    <th>QR Code</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for artifact in artifacts %}
-                <tr>
-                    <td>{{ artifact.filename }}</td>
-                    <td style="font-family: monospace; font-size: 0.85rem;">
-                        {{ artifact.file_hash[:16] }}...
-                    </td>
-                    <td>
-                        {% if artifact.status.value == 'approved' %}
-                        <span class="badge badge-approved">✅ Approved</span>
-                        {% elif artifact.status.value == 'rejected' %}
-                        <span class="badge badge-rejected">❌ Rejected</span>
-                        {% else %}
-                        <span class="badge badge-pending">⏳ Pending</span>
+        <!-- Artifact Uploads - Large Card -->
+        <div class="glass-card bento-span-8">
+            <div class="glass-card-title">
+                <span>📦</span>
+                <span>Artifact Vault</span>
+            </div>
+
+            {% if artifacts %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>SHA-256 Hash</th>
+                        <th>Status</th>
+                        <th>Uploaded</th>
+                        {% if user.role.value == 'manager' %}
+                        <th>Action</th>
                         {% endif %}
-                    </td>
-                    <td>{{ artifact.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    {% if user.role.value == 'manager' %}
-                    <td>
-                        {% if artifact.status.value == 'pending' %}
-                        <form method="POST" action="/approve/{{ artifact.id }}" style="display: inline;">
-                            <button type="submit" class="btn btn-success"
-                                style="padding: 6px 12px; font-size: 0.85rem;">
-                                Approve
-                            </button>
-                        </form>
-                        {% else %}
-                        <span style="color: #6b7280;">—</span>
+                        <th>QR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artifact in artifacts %}
+                    <tr>
+                        <td>{{ artifact.filename }}</td>
+                        <td>
+                            <span class="hash-text">{{ artifact.file_hash[:8] }}...{{ artifact.file_hash[-8:] }}</span>
+                        </td>
+                        <td>
+                            {% if artifact.status.value == 'approved' %}
+                            <span class="badge badge-approved">
+                                <span class="pulse-dot" style="width: 6px; height: 6px;"></span>
+                                Verified
+                            </span>
+                            {% elif artifact.status.value == 'rejected' %}
+                            <span class="badge badge-rejected">✕ Rejected</span>
+                            {% else %}
+                            <span class="badge badge-pending">◐ Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted" style="font-size: 0.8rem;">
+                            {{ artifact.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        {% if user.role.value == 'manager' %}
+                        <td>
+                            {% if artifact.status.value == 'pending' %}
+                            <form method="POST" action="/approve/{{ artifact.id }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
                         {% endif %}
-                    </td>
+                        <td>
+                            <a href="/qr/{{ artifact.id }}" target="_blank" class="btn btn-ghost btn-sm">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted" style="padding: 3rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                <p>No artifacts in the vault yet.</p>
+                <p style="font-size: 0.85rem;">Upload your first artifact using the CLI tool.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Stats & Logs -->
+        <div class="bento-span-4 flex flex-col gap-md">
+
+            <!-- Quick Stats -->
+            <div class="glass-card">
+                <div class="glass-card-title">
+                    <span>📊</span>
+                    <span>Quick Stats</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 600; color: var(--neon-cyan);">
+                            {{ artifacts|length if artifacts else 0 }}
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Total Artifacts
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 600; color: var(--neon-green);">
+                            {{ artifacts|selectattr('status.value', 'equalto', 'approved')|list|length if artifacts else
+                            0 }}
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Verified</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Log Terminal -->
+            <div class="glass-card" style="flex: 1;">
+                <div class="glass-card-title">
+                    <span>🖥️</span>
+                    <span>Audit Log</span>
+                </div>
+                <div class="terminal">
+                    {% if artifacts %}
+                    {% for artifact in artifacts[:5] %}
+                    <div class="terminal-line">
+                        <span class="terminal-time">[{{ artifact.uploaded_at.strftime('%H:%M') }}]</span>
+                        <span class="terminal-event">UPLOAD: {{ artifact.filename }}</span>
+                    </div>
+                    {% if artifact.status.value == 'approved' %}
+                    <div class="terminal-line">
+                        <span class="terminal-time">[{{ artifact.approved_at.strftime('%H:%M') if artifact.approved_at
+                            else '--:--' }}]</span>
+                        <span class="terminal-event" style="color: var(--neon-green);">VERIFY: {{ artifact.filename
+                            }}</span>
+                    </div>
                     {% endif %}
-                    <td>
-                        <a href="/qr/{{ artifact.id }}" target="_blank" style="color: #60a5fa;">
-                            View QR
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p style="color: #9ca3af; text-align: center; padding: 40px;">
-            No artifacts uploaded yet.
-        </p>
-        {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <div class="terminal-line">
+                        <span class="terminal-time">[--:--]</span>
+                        <span class="terminal-event">Awaiting events...</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CLI Usage Hint -->
+    <div class="glass-card mt-lg">
+        <div class="glass-card-title">
+            <span>💻</span>
+            <span>Developer CLI</span>
+        </div>
+        <div class="terminal" style="max-height: 80px;">
+            <div class="terminal-line">
+                <span style="color: var(--neon-purple);">$</span>
+                <span class="font-mono" style="color: var(--text-primary);">python client_upload.py &lt;file&gt;
+                    keys/dev_private.pem</span>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
