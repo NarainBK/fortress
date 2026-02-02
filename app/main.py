@@ -3,6 +3,8 @@ Fortress - Secure Software Supply Chain Artifact Vault
 Main FastAPI Application
 """
 import os
+import base64
+import hashlib
 from pathlib import Path
 from datetime import datetime
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -11,9 +13,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from sqlmodel import Session, select
+from pydantic import BaseModel
 
-from app.models import init_db, User, Artifact, engine
+from app.models import init_db, User, Artifact, engine, UserRole, ArtifactStatus
 from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp
+from app.crypto_utils import CryptoUtils
 
 # --- App Setup ---
 app = FastAPI(title="Fortress", description="Secure Artifact Vault")
@@ -130,9 +134,6 @@ async def logout(request: Request):
     return RedirectResponse(url="/", status_code=302)
 
 # --- Upload Endpoint ---
-from pydantic import BaseModel
-import base64
-
 class UploadPayload(BaseModel):
     filename: str
     file_b64: str
@@ -145,8 +146,6 @@ async def upload_artifact(request: Request, payload: UploadPayload):
     Receive artifact from Developer CLI.
     Verifies signature, checks integrity, encrypts, and stores.
     """
-    from app.crypto_utils import CryptoUtils
-    from app.models import UserRole, ArtifactStatus
     
     user = get_current_user(request)
     if not user or user.role != UserRole.DEVELOPER:
@@ -160,7 +159,6 @@ async def upload_artifact(request: Request, payload: UploadPayload):
         return {"error": "Invalid Base64 encoding"}
     
     # Verify integrity: re-calculate hash
-    import hashlib
     calculated_hash = hashlib.sha256(file_content).hexdigest()
     if calculated_hash != payload.hash:
         return {"error": "Integrity check failed. Hash mismatch."}
@@ -197,3 +195,28 @@ async def upload_artifact(request: Request, payload: UploadPayload):
         db.commit()
     
     return {"status": "success", "message": "Artifact uploaded and encrypted"}
+
+# --- Approve Endpoint ---
+@app.post("/approve/{artifact_id}")
+async def approve_artifact(request: Request, artifact_id: int):
+    """
+    Approve an artifact (Manager only).
+    Changes status from PENDING to APPROVED.
+    """
+    
+    user = get_current_user(request)
+    if not user or user.role != UserRole.MANAGER:
+        return {"error": "Unauthorized. Manager role required."}
+    
+    with Session(engine) as db:
+        artifact = db.get(Artifact, artifact_id)
+        if not artifact:
+            return {"error": "Artifact not found"}
+        
+        artifact.status = ArtifactStatus.APPROVED
+        artifact.approved_by = user.id
+        artifact.approved_at = datetime.utcnow()
+        db.add(artifact)
+        db.commit()
+    
+    return {"status": "success", "message": f"Artifact {artifact_id} approved"}
