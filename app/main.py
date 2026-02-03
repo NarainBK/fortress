@@ -18,7 +18,7 @@ from sqlmodel import Session, select
 from pydantic import BaseModel
 
 from app.models import init_db, User, Artifact, engine, UserRole, ArtifactStatus
-from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp
+from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp, get_qr_code_data
 from app.crypto_utils import CryptoUtils
 
 # --- App Setup ---
@@ -77,6 +77,14 @@ async def login(request: Request, username: str = Form(...), password: str = For
             "error": "Invalid credentials"
         })
     
+    
+    # Check if user needs to setup MFA
+    if not user.mfa_secret:
+        # Store pending user ID and redirect to setup
+        request.session["pending_user_id"] = user.id
+        request.session["pending_username"] = user.username
+        return RedirectResponse(url="/setup-mfa", status_code=302)
+
     # Store user_id temporarily for OTP verification
     request.session["pending_user_id"] = user.id
     request.session["pending_username"] = user.username
@@ -89,6 +97,75 @@ async def login(request: Request, username: str = Form(...), password: str = For
         "request": request,
         "username": user.username
     })
+
+@app.get("/setup-mfa")
+async def setup_mfa_page(request: Request):
+    """Show MFA setup page with QR code."""
+    pending_user_id = request.session.get("pending_user_id")
+    if not pending_user_id:
+        return RedirectResponse(url="/", status_code=302)
+    
+    with Session(engine) as db:
+        user = db.get(User, pending_user_id)
+        if not user:
+            return RedirectResponse(url="/", status_code=302)
+        
+        # Check if already setup (shouldn't be here)
+        if user.mfa_secret:
+            return RedirectResponse(url="/", status_code=302) # Should go to verify-otp logically but simpler to redirect home
+        
+        # Generate QR data
+        secret, qr_b64 = get_qr_code_data(user.username)
+        
+        return templates.TemplateResponse("mfa_setup.html", {
+            "request": request,
+            "qr_b64": qr_b64,
+            "secret": secret
+        })
+
+@app.post("/setup-mfa")
+async def setup_mfa_submit(request: Request, secret: str = Form(...), otp_code: str = Form(...)):
+    """Verify code and save MFA secret."""
+    pending_user_id = request.session.get("pending_user_id")
+    if not pending_user_id:
+        return RedirectResponse(url="/", status_code=302)
+    
+    # Verify the code against the PROPOSED secret
+    if not verify_totp(secret, otp_code):
+         # Regenerate generic QR (or pass back the same if we could, but simpler to error)
+         # For UX, we re-render the page. Ideally we should re-use secret but 
+         # since we didn't save it, we'll just error out or re-render.
+         # Re-rendering needs new QR though.
+         # Let's simple re-render with error.
+         
+         with Session(engine) as db:
+             user = db.get(User, pending_user_id)
+             secret_new, qr_b64 = get_qr_code_data(user.username)
+             
+             return templates.TemplateResponse("mfa_setup.html", {
+                "request": request,
+                "qr_b64": qr_b64,
+                "secret": secret_new,
+                "error": "Invalid code. Please scan the new QR code."
+            })
+
+    # Code valid! Save secret to DB.
+    with Session(engine) as db:
+        user = db.get(User, pending_user_id)
+        if not user:
+             return RedirectResponse(url="/", status_code=302)
+        
+        user.mfa_secret = secret
+        db.add(user)
+        db.commit()
+    
+    # Log them in fully
+    request.session.pop("pending_user_id", None)
+    request.session.pop("pending_username", None)
+    request.session["user_id"] = pending_user_id
+    request.session["session_created"] = datetime.utcnow().isoformat()
+    
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 @app.post("/verify-otp")
 async def verify_otp_route(request: Request, otp_code: str = Form(...)):
