@@ -82,7 +82,8 @@ async def login(request: Request, username: str = Form(...), password: str = For
     request.session["pending_username"] = user.username
     
     # Debug: print TOTP (remove in production)
-    print(f"[DEBUG] TOTP for {user.username}: {get_current_totp(user.totp_secret)}")
+    if user.mfa_secret:
+        print(f"[DEBUG] TOTP for {user.username}: {get_current_totp(user.mfa_secret)}")
     
     return templates.TemplateResponse("otp.html", {
         "request": request,
@@ -98,7 +99,7 @@ async def verify_otp_route(request: Request, otp_code: str = Form(...)):
     
     with Session(engine) as db:
         user = db.get(User, pending_user_id)
-        if not user or not verify_totp(user.totp_secret, otp_code):
+        if not user or not user.mfa_secret or not verify_totp(user.mfa_secret, otp_code):
             return templates.TemplateResponse("otp.html", {
                 "request": request,
                 "username": request.session.get("pending_username"),

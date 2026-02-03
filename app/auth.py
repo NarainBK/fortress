@@ -21,7 +21,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against its hash."""
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-def generate_totp_secret() -> str:
+def generate_mfa_secret() -> str:
     """Generate a new TOTP secret for MFA."""
     return pyotp.random_base32()
 
@@ -62,14 +62,15 @@ def is_session_valid(session_created_at: datetime) -> bool:
     return datetime.utcnow() < expiry_time
 
 def create_user(username: str, password: str, role: str, public_key_path: str = None) -> User:
-    """Create a new user with hashed password and TOTP secret."""
+    """Create a new user with hashed password and initial MFA secret (optional)."""
     with Session(engine) as session:
-        totp_secret = generate_totp_secret()
+        # In new flow, this might be None initially, but for helper we can generate it or leave None
+        # For now, let's leave it None to respect the 'nullable for new users' rule
         user = User(
             username=username,
             password_hash=hash_password(password),
             role=role,
-            totp_secret=totp_secret,
+            mfa_secret=None,
             public_key_path=public_key_path
         )
         session.add(user)

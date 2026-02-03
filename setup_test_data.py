@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from pathlib import Path
 from app.models import init_db, User, engine
-from app.auth import hash_password, generate_totp_secret, get_totp_uri
+from app.auth import hash_password, generate_mfa_secret, get_totp_uri
 from app.crypto_utils import CryptoUtils
 from sqlmodel import Session
 
@@ -42,8 +42,8 @@ def setup():
     # Create test users
     print("\n[3/4] Creating test users...")
     
-    dev_totp_secret = generate_totp_secret()
-    mgr_totp_secret = generate_totp_secret()
+    dev_totp_secret = generate_mfa_secret()
+    mgr_totp_secret = generate_mfa_secret()
     
     with Session(engine) as session:
         # Check if users already exist
@@ -55,7 +55,7 @@ def setup():
                 username="developer",
                 password_hash=hash_password("dev123"),
                 role="developer",
-                totp_secret=dev_totp_secret,
+                mfa_secret=dev_totp_secret,
                 public_key_path=str(dev_public_path)
             )
             
@@ -63,7 +63,7 @@ def setup():
                 username="manager",
                 password_hash=hash_password("mgr123"),
                 role="manager",
-                totp_secret=mgr_totp_secret,
+                mfa_secret=mgr_totp_secret,
                 public_key_path=None
             )
             

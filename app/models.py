@@ -21,7 +21,7 @@ class User(SQLModel, table=True):
     username: str = Field(unique=True, index=True)
     password_hash: str
     role: UserRole = Field(default=UserRole.DEVELOPER)
-    totp_secret: str  # For MFA
+    mfa_secret: Optional[str] = None  # For MFA (Google Authenticator)
     public_key_path: Optional[str] = None  # Path to stored public key
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
