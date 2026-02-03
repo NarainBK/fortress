@@ -4,6 +4,9 @@ Implements bcrypt password hashing and TOTP-based MFA.
 """
 import bcrypt
 import pyotp
+import qrcode
+import base64
+from io import BytesIO
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlmodel import Session, select
@@ -41,6 +44,34 @@ def get_current_totp(secret: str) -> str:
     """Get the current TOTP code (for testing/debugging)."""
     totp = pyotp.TOTP(secret)
     return totp.now()
+
+def get_qr_code_data(username: str) -> tuple[str, str]:
+    """
+    Generate a new TOTP secret and its corresponding QR code.
+    
+    Args:
+        username: The username to embed in the QR code.
+        
+    Returns:
+        tuple: (secret, qr_b64)
+            - secret: The base32 TOTP secret.
+            - qr_b64: Base64 encoded PNG image of the QR code.
+    """
+    secret = generate_mfa_secret()
+    uri = get_totp_uri(secret, username)
+    
+    # Generate QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to Base64
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    qr_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    
+    return secret, qr_b64
 
 def authenticate_user(username: str, password: str) -> Optional[User]:
     """
