@@ -185,6 +185,7 @@
     </div>
 
     <!-- CLI Usage Hint -->
+    {% if user.role.value == 'developer' %}
     <div class="glass-card mt-lg">
         <div class="glass-card-title">
             <span>💻</span>
@@ -198,5 +199,6 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
