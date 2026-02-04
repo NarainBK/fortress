@@ -59,7 +59,10 @@
                             {% endif %}
                         </td>
                         <td class="text-muted" style="font-size: 0.8rem;">
-                            {{ artifact.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+                            <span class="utc-time" data-timestamp="{{ artifact.uploaded_at.isoformat() }}"
+                                data-format="datetime">
+                                {{ artifact.uploaded_at.strftime('%Y-%m-%d %H:%M') }} UTC
+                            </span>
                         </td>
                         {% if user.role.value == 'manager' %}
                         <td>
@@ -127,13 +130,16 @@
                     {% if artifacts %}
                     {% for artifact in artifacts[:5] %}
                     <div class="terminal-line">
-                        <span class="terminal-time">[{{ artifact.uploaded_at.strftime('%H:%M') }}]</span>
+                        <span class="terminal-time utc-time" data-timestamp="{{ artifact.uploaded_at.isoformat() }}"
+                            data-format="time">[{{ artifact.uploaded_at.strftime('%H:%M') }}]</span>
                         <span class="terminal-event">UPLOAD: {{ artifact.filename }}</span>
                     </div>
                     {% if artifact.status.value == 'approved' %}
                     <div class="terminal-line">
-                        <span class="terminal-time">[{{ artifact.approved_at.strftime('%H:%M') if artifact.approved_at
-                            else '--:--' }}]</span>
+                        <span class="terminal-time utc-time"
+                            data-timestamp="{{ artifact.approved_at.isoformat() if artifact.approved_at else '' }}"
+                            data-format="time">[{{ artifact.approved_at.strftime('%H:%M') if artifact.approved_at else
+                            '--:--' }}]</span>
                         <span class="terminal-event" style="color: var(--neon-green);">VERIFY: {{ artifact.filename
                             }}</span>
                     </div>
@@ -147,6 +153,33 @@
                     {% endif %}
                 </div>
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.utc-time').forEach(function (el) {
+                        const timestamp = el.getAttribute('data-timestamp');
+                        const format = el.getAttribute('data-format');
+                        if (!timestamp) return;
+
+                        const date = new Date(timestamp + (timestamp.endsWith('Z') ? '' : 'Z')); // Ensure UTC treatment
+
+                        if (format === 'time') {
+                            // Format: [HH:MM]
+                            const hours = date.getHours().toString().padStart(2, '0');
+                            const minutes = date.getMinutes().toString().padStart(2, '0');
+                            el.innerText = `[${hours}:${minutes}]`;
+                        } else {
+                            // Format: YYYY-MM-DD HH:MM
+                            const year = date.getFullYear();
+                            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                            const day = date.getDate().toString().padStart(2, '0');
+                            const hours = date.getHours().toString().padStart(2, '0');
+                            const minutes = date.getMinutes().toString().padStart(2, '0');
+                            el.innerText = `${year}-${month}-${day} ${hours}:${minutes}`;
+                        }
+                    });
+                });
+            </script>
 
         </div>
     </div>
