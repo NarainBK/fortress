@@ -29,12 +29,7 @@
 
             <ul class="navbar-nav">
                 <li><a href="/dashboard" class="nav-link">Dashboard</a></li>
-                {% if user.role.value == 'manager' %}
-                <li><a href="#" class="nav-link">Approvals</a></li>
-                {% endif %}
-                {% if user.role.value == 'auditor' %}
-                <li><a href="#" class="nav-link">Audit Logs</a></li>
-                {% endif %}
+
                 <li>
                     <div class="nav-user">
                         <span>{{ user.username }}</span>
