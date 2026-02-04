@@ -42,10 +42,9 @@ def setup():
     # Create test users
     print("\n[3/4] Creating test users...")
     
-    dev_totp_secret = generate_mfa_secret()
-    dev_totp_secret = generate_mfa_secret()
-    mgr_totp_secret = generate_mfa_secret()
-    aud_totp_secret = generate_mfa_secret()
+    # dev_totp_secret = generate_mfa_secret()
+    # mgr_totp_secret = generate_mfa_secret()
+    # aud_totp_secret = generate_mfa_secret()
     
     with Session(engine) as session:
         # Check if users already exist
@@ -57,7 +56,7 @@ def setup():
                 username="developer",
                 password_hash=hash_password("dev123"),
                 role="developer",
-                mfa_secret=dev_totp_secret,
+                mfa_secret=None, # User will setup MFA manually
                 public_key_path=str(dev_public_path)
             )
             
@@ -65,7 +64,7 @@ def setup():
                 username="manager",
                 password_hash=hash_password("mgr123"),
                 role="manager",
-                mfa_secret=mgr_totp_secret,
+                mfa_secret=None, # User will setup MFA manually
                 public_key_path=None
             )
             
@@ -73,7 +72,7 @@ def setup():
                 username="auditor",
                 password_hash=hash_password("aud123"),
                 role="auditor",
-                mfa_secret=aud_totp_secret,
+                mfa_secret=None, # User will setup MFA manually
                 public_key_path=None
             )
             
@@ -86,15 +85,12 @@ def setup():
             print("      ✅ Created user: auditor (password: aud123)")
     
     # Print TOTP info
-    print("\n[4/4] TOTP Setup Info:")
+    print("\n[4/4] Accounts Created:")
     print("-" * 50)
-    print(f"Developer TOTP Secret: {dev_totp_secret}")
-    print(f"Developer TOTP Secret: {dev_totp_secret}")
-    print(f"Manager TOTP Secret:   {mgr_totp_secret}")
-    print(f"Auditor TOTP Secret:   {aud_totp_secret}")
+    print("Usernames: developer, manager, auditor")
+    print("Passwords: dev123, mgr123, aud123")
     print("-" * 50)
-    print("\n📱 Add these secrets to your authenticator app (Google Authenticator, Authy, etc.)")
-    print("   Or use an online TOTP generator: https://totp.danhersam.com/")
+    print("⚠️  MFA is NOT configured. You will be prompted to setup MFA on first login.")
     
     print("\n" + "=" * 50)
     print("✅ Setup complete!")

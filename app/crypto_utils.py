@@ -41,7 +41,7 @@ class CryptoUtils:
             Tuple: (nonce, ciphertext).
         """
         aesgcm = AESGCM(key)
-        nonce = os.urandom(12)  # NIST recommended is 96-bit nonce
+        nonce = os.urandom(12)  # NIST recommended nonce is 96-bits
         ciphertext = aesgcm.encrypt(nonce, data, None)
         return nonce, ciphertext
 
