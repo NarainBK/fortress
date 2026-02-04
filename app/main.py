@@ -307,7 +307,7 @@ async def approve_artifact(request: Request, artifact_id: int):
         db.add(artifact)
         db.commit()
     
-    return {"status": "success", "message": f"Artifact {artifact_id} approved"}
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 # --- QR Code Endpoint ---
 @app.get("/qr/{artifact_id}")
