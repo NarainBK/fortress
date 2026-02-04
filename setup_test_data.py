@@ -43,7 +43,9 @@ def setup():
     print("\n[3/4] Creating test users...")
     
     dev_totp_secret = generate_mfa_secret()
+    dev_totp_secret = generate_mfa_secret()
     mgr_totp_secret = generate_mfa_secret()
+    aud_totp_secret = generate_mfa_secret()
     
     with Session(engine) as session:
         # Check if users already exist
@@ -67,17 +69,29 @@ def setup():
                 public_key_path=None
             )
             
+            auditor = User(
+                username="auditor",
+                password_hash=hash_password("aud123"),
+                role="auditor",
+                mfa_secret=aud_totp_secret,
+                public_key_path=None
+            )
+            
             session.add(developer)
             session.add(manager)
+            session.add(auditor)
             session.commit()
             print("      ✅ Created user: developer (password: dev123)")
             print("      ✅ Created user: manager (password: mgr123)")
+            print("      ✅ Created user: auditor (password: aud123)")
     
     # Print TOTP info
     print("\n[4/4] TOTP Setup Info:")
     print("-" * 50)
     print(f"Developer TOTP Secret: {dev_totp_secret}")
+    print(f"Developer TOTP Secret: {dev_totp_secret}")
     print(f"Manager TOTP Secret:   {mgr_totp_secret}")
+    print(f"Auditor TOTP Secret:   {aud_totp_secret}")
     print("-" * 50)
     print("\n📱 Add these secrets to your authenticator app (Google Authenticator, Authy, etc.)")
     print("   Or use an online TOTP generator: https://totp.danhersam.com/")

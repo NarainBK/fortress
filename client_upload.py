@@ -82,6 +82,7 @@ def main():
     print(f"[4/4] Uploading to server...")
     payload = {
         "filename": Path(file_path).name,
+        "username": "developer", # Hardcoded for this demo
         "file_b64": file_b64,
         "signature": signature_b64,
         "hash": file_hash

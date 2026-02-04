@@ -216,6 +216,7 @@ async def logout(request: Request):
 # --- Upload Endpoint ---
 class UploadPayload(BaseModel):
     filename: str
+    username: str  # Added for signature-based auth
     file_b64: str
     signature: str
     hash: str
@@ -225,10 +226,17 @@ async def upload_artifact(request: Request, payload: UploadPayload):
     """
     Receive artifact from Developer CLI.
     Verifies signature, checks integrity, encrypts, and stores.
+    Authentication is done via RSA Signature verification (API Key style).
     """
     
-    user = get_current_user(request)
-    if not user or user.role != UserRole.DEVELOPER:
+    # Lookup user by username provided in payload
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == payload.username)).first()
+    
+    if not user:
+        return {"error": "User not found"}
+        
+    if user.role != UserRole.DEVELOPER:
         return {"error": "Unauthorized. Developer role required."}
     
     # Decode file content
