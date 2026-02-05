@@ -237,7 +237,13 @@ async def dashboard(request: Request):
         return RedirectResponse(url="/", status_code=302)
     
     with Session(engine) as db:
-        artifacts = db.exec(select(Artifact)).all()
+        # Access Control:
+        # Developers: See ONLY their own artifacts
+        # Managers/Auditors: See ALL artifacts
+        if user.role == UserRole.DEVELOPER:
+            artifacts = db.exec(select(Artifact).where(Artifact.uploader_id == user.id)).all()
+        else:
+            artifacts = db.exec(select(Artifact)).all()
         
         # For Managers: Fetch inactive users
         inactive_users = []
