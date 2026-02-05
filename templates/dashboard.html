@@ -260,6 +260,21 @@
             <span class="badge badge-approved" style="font-size: 0.7rem;">
                 <span class="pulse-dot"></span> Keys Configured
             </span>
+
+            <div class="mt-md" style="border-top: 1px solid var(--border-glass); padding-top: 1rem;">
+                <details>
+                    <summary class="text-muted" style="cursor: pointer; font-size: 0.8rem;">Lost your private key?
+                    </summary>
+                    <div class="mt-sm">
+                        <form action="/generate-keys" method="POST">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('Warning: This will invalidate your old private key. Continue?');">
+                                Regenerate Key Pair
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            </div>
         </div>
         {% endif %}
     </div>

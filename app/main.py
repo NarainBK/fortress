@@ -299,9 +299,24 @@ async def upload_artifact(request: Request, payload: UploadPayload):
     if not user.public_key_path:
         return {"error": "No public key registered for this user"}
     
-    public_key = CryptoUtils.load_public_key(user.public_key_path)
-    if not CryptoUtils.verify_signature(public_key, payload.hash.encode(), signature):
-        return {"error": "Signature verification failed"}
+    print(f"[DEBUG] Verifying upload for user: {user.username}")
+    print(f"[DEBUG] Public Key Path: {user.public_key_path}")
+    print(f"[DEBUG] Payload Hash: {payload.hash}")
+    
+    try:
+        public_key = CryptoUtils.load_public_key(user.public_key_path)
+        if not CryptoUtils.verify_signature(public_key, payload.hash.encode(), signature):
+            print(f"[DEBUG] Signature verification FAILED")
+            # --- DEBUG BLOCK START ---
+            # dump keys to see if they match pair
+            print(f"[DEBUG] Public Key Modulus: {public_key.public_numbers().n}")
+            # we can't see private key here obviously.
+            # --- DEBUG BLOCK END ---
+            return {"error": "Signature verification failed"}
+        print(f"[DEBUG] Signature verification SUCCESS")
+    except Exception as e:
+        print(f"[DEBUG] Error loading verify key: {e}")
+        return {"error": f"Internal verification error: {e}"}
     
     # Encrypt and save
     aes_key = CryptoUtils.generate_aes_key()
