@@ -23,6 +23,7 @@ class User(SQLModel, table=True):
     role: UserRole = Field(default=UserRole.DEVELOPER)
     mfa_secret: Optional[str] = None  # For MFA (Google Authenticator)
     public_key_path: Optional[str] = None  # Path to stored public key
+    is_active: bool = Field(default=False)  # User status (active/inactive)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class Artifact(SQLModel, table=True):

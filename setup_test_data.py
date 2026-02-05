@@ -57,7 +57,8 @@ def setup():
                 password_hash=hash_password("dev123"),
                 role="developer",
                 mfa_secret=None, # User will setup MFA manually
-                public_key_path=str(dev_public_path)
+                public_key_path=str(dev_public_path),
+                is_active=True
             )
             
             manager = User(
@@ -65,7 +66,8 @@ def setup():
                 password_hash=hash_password("mgr123"),
                 role="manager",
                 mfa_secret=None, # User will setup MFA manually
-                public_key_path=None
+                public_key_path=None,
+                is_active=True
             )
             
             auditor = User(
@@ -73,7 +75,8 @@ def setup():
                 password_hash=hash_password("aud123"),
                 role="auditor",
                 mfa_secret=None, # User will setup MFA manually
-                public_key_path=None
+                public_key_path=None,
+                is_active=True
             )
             
             session.add(developer)
