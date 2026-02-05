@@ -237,11 +237,17 @@ async def dashboard(request: Request):
     
     with Session(engine) as db:
         artifacts = db.exec(select(Artifact)).all()
+        
+        # For Managers: Fetch inactive users
+        inactive_users = []
+        if user.role == UserRole.MANAGER:
+            inactive_users = db.exec(select(User).where(User.is_active == False)).all()
     
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
-        "artifacts": artifacts
+        "artifacts": artifacts,
+        "inactive_users": inactive_users
     })
 
 @app.get("/logout")
@@ -370,3 +376,14 @@ async def generate_qr(request: Request, artifact_id: int):
         img.save(buffer, format="PNG")
         buffer.seek(0)
         return StreamingResponse(buffer, media_type="image/png")
+    
+    with Session(engine) as db:
+        user_to_approve = db.get(User, user_id)
+        if not user_to_approve:
+            return RedirectResponse(url="/dashboard", status_code=302)
+            
+        user_to_approve.is_active = True
+        db.add(user_to_approve)
+        db.commit()
+    
+    return RedirectResponse(url="/dashboard", status_code=302)

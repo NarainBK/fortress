@@ -185,6 +185,51 @@
     </div>
 
     <!-- CLI Usage Hint -->
+    <!-- Inactive Users (Manager Only) -->
+    {% if user.role.value == 'manager' and inactive_users %}
+    <div class="glass-card mt-lg">
+        <div class="glass-card-title">
+            <span>👥</span>
+            <span>Pending User Approvals</span>
+        </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Registered</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inactive_user in inactive_users %}
+                    <tr>
+                        <td>{{ inactive_user.username }}</td>
+                        <td><span class="role-badge">{{ inactive_user.role.value }}</span></td>
+                        <td class="text-muted" style="font-size: 0.8rem;">
+                            <span class="utc-time" data-timestamp="{{ inactive_user.created_at.isoformat() }}"
+                                data-format="datetime">
+                                {{ inactive_user.created_at.strftime('%Y-%m-%d %H:%M') }} UTC
+                            </span>
+                        </td>
+                        <td>
+                            <form action="/approve-user/{{ inactive_user.id }}" method="POST" style="display:inline;">
+                                <button type="submit" class="status-badge status-approved"
+                                    style="cursor:pointer; border:none; background:none;">
+                                    Approve
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Developer Tools -->
     {% if user.role.value == 'developer' %}
     <div class="glass-card mt-lg">
         <div class="glass-card-title">
