@@ -377,6 +377,15 @@ async def generate_qr(request: Request, artifact_id: int):
         buffer.seek(0)
         return StreamingResponse(buffer, media_type="image/png")
     
+@app.post("/approve-user/{user_id}")
+async def approve_user(request: Request, user_id: int):
+    """
+    Approve an inactive user (Manager only).
+    """
+    user = get_current_user(request)
+    if not user or user.role != UserRole.MANAGER:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    
     with Session(engine) as db:
         user_to_approve = db.get(User, user_id)
         if not user_to_approve:
