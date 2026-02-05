@@ -16,6 +16,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from starlette.middleware.sessions import SessionMiddleware
 from sqlmodel import Session, select
 from pydantic import BaseModel
+from cryptography.hazmat.primitives import serialization as crypto_serialization
 
 from app.models import init_db, User, Artifact, engine, UserRole, ArtifactStatus
 from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp, get_qr_code_data, hash_password
@@ -396,3 +397,56 @@ async def approve_user(request: Request, user_id: int):
         db.commit()
     
     return RedirectResponse(url="/dashboard", status_code=302)
+
+# --- Key Generation Endpoint ---
+@app.post("/generate-keys")
+async def generate_keys(request: Request):
+    """
+    Generate RSA Key Pair for the current user.
+    - Saves Public Key to server (keys/username_public.pem)
+    - Updates User profile in DB
+    - Returns Private Key as download (username_private.pem)
+    """
+    user = get_current_user(request)
+    if not user or user.role != UserRole.DEVELOPER:
+        return RedirectResponse(url="/dashboard", status_code=302)
+
+    # Generate Keys
+    private_key, public_key = CryptoUtils.generate_rsa_key_pair()
+    
+    # Define Paths
+    keys_dir = BASE_DIR / "keys"
+    keys_dir.mkdir(exist_ok=True)
+    
+    pub_filename = f"{user.username}_public.pem"
+    pub_path = keys_dir / pub_filename
+    
+    # Save Public Key to Server
+    CryptoUtils.save_key_to_file(public_key, str(pub_path), is_private=False)
+    
+    # Update User in DB
+    with Session(engine) as db:
+        db_user = db.get(User, user.id)
+        if db_user:
+            db_user.public_key_path = str(pub_path)
+            db.add(db_user)
+            db.commit()
+            
+    # Serialize Private Key for Download
+    priv_pem = private_key.private_bytes(
+        encoding=crypto_serialization.Encoding.PEM,
+        format=crypto_serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=crypto_serialization.NoEncryption()
+    )
+    
+    # Create stream
+    buffer = BytesIO(priv_pem)
+    buffer.seek(0)
+    
+    filename = f"{user.username}_private.pem"
+    
+    return StreamingResponse(
+        buffer, 
+        media_type="application/x-pem-file",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

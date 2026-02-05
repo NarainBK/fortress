@@ -235,13 +235,33 @@
             <span>💻</span>
             <span>Developer CLI</span>
         </div>
+
+        {% if not user.public_key_path %}
+        <div class="text-center">
+            <p class="text-muted mb-md">You need a key pair to sign artifacts.</p>
+            <form action="/generate-keys" method="POST">
+                <button type="submit" class="btn btn-primary">
+                    Generate RSA Key Pair
+                </button>
+            </form>
+            <p class="text-muted mt-sm" style="font-size: 0.8rem;">
+                This will download your <code>private.pem</code> file. Keep it safe!
+            </p>
+        </div>
+        {% else %}
         <div class="terminal" style="max-height: 80px;">
             <div class="terminal-line">
                 <span style="color: var(--neon-purple);">$</span>
-                <span class="font-mono" style="color: var(--text-primary);">python client_upload.py &lt;file&gt;
-                    keys/dev_private.pem</span>
+                <span class="font-mono" style="color: var(--text-primary);">python client_upload.py &lt;file&gt; keys/{{
+                    user.username }}_private.pem</span>
             </div>
         </div>
+        <div class="mt-sm">
+            <span class="badge badge-approved" style="font-size: 0.7rem;">
+                <span class="pulse-dot"></span> Keys Configured
+            </span>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
