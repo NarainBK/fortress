@@ -18,7 +18,7 @@ from sqlmodel import Session, select
 from pydantic import BaseModel
 
 from app.models import init_db, User, Artifact, engine, UserRole, ArtifactStatus
-from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp, get_qr_code_data
+from app.auth import authenticate_user, verify_totp, is_session_valid, get_current_totp, get_qr_code_data, hash_password
 from app.crypto_utils import CryptoUtils
 
 # --- App Setup ---
@@ -67,6 +67,36 @@ async def home(request: Request):
 async def health_check():
     return {"status": "healthy"}
 
+@app.post("/register")
+async def register(request: Request, username: str = Form(...), password: str = Form(...)):
+    """
+    Self-Registration endpoint.
+    Creates an INACTIVE user with 'developer' role.
+    Requires Admin approval to activate.
+    """
+    with Session(engine) as db:
+        existing = db.exec(select(User).where(User.username == username)).first()
+        if existing:
+            return templates.TemplateResponse("login.html", {
+                "request": request,
+                "error": "Username already exists"
+            })
+        
+        user = User(
+            username=username,
+            password_hash=hash_password(password),
+            role=UserRole.DEVELOPER, # Force developer role
+            is_active=False,         # Inactive by default
+            mfa_secret=None
+        )
+        db.add(user)
+        db.commit()
+    
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "success": "Registration successful! Your account is pending Admin approval."
+    })
+
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     """Step 1: Verify username and password."""
@@ -77,6 +107,13 @@ async def login(request: Request, username: str = Form(...), password: str = For
             "error": "Invalid credentials"
         })
     
+    
+    # Check if user is active
+    if not user.is_active:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Account inactive. Please contact your Manager."
+        })
     
     # Check if user needs to setup MFA
     if not user.mfa_secret:

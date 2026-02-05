@@ -46,12 +46,14 @@ def sign_hash(private_key, hash_bytes: bytes) -> str:
 def main():
     """Main CLI entry point."""
     if len(sys.argv) < 3:
-        print("Usage: python client_upload.py <file_path> <private_key_path>")
-        print("Example: python client_upload.py ./app-v1.exe ./keys/dev_private.pem")
+        print("Usage: python client_upload.py <file_path> <private_key_path> [username]")
+        print("Example: python client_upload.py ./app-v1.exe ./keys/dev_private.pem developer")
         sys.exit(1)
     
     file_path = sys.argv[1]
     private_key_path = sys.argv[2]
+    # Default to 'developer' if not provided for backward compatibility
+    username = sys.argv[3] if len(sys.argv) > 3 else "developer"
     
     # Validate paths
     if not Path(file_path).exists():
@@ -82,7 +84,7 @@ def main():
     print(f"[4/4] Uploading to server...")
     payload = {
         "filename": Path(file_path).name,
-        "username": "developer", # Hardcoded for this demo
+        "username": username,
         "file_b64": file_b64,
         "signature": signature_b64,
         "hash": file_hash
