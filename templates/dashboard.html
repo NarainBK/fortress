@@ -238,14 +238,19 @@
 
         {% if not user.public_key_path %}
         <div class="text-center">
-            <p class="text-muted mb-md">You need a key pair to sign artifacts.</p>
-            <form action="/generate-keys" method="POST">
-                <button type="submit" class="btn btn-primary">
-                    Generate RSA Key Pair
-                </button>
-            </form>
+            <p class="text-muted mb-md">Initialize your secure key pair locally:</p>
+
+            <div class="terminal" style="text-align: left; margin: 10px auto; max-width: 90%;">
+                <div class="terminal-line">
+                    <span style="color: var(--neon-purple);">$</span>
+                    <span class="font-mono" style="color: var(--text-primary);">python client_setup.py {{ user.username
+                        }}</span>
+                </div>
+            </div>
+
             <p class="text-muted mt-sm" style="font-size: 0.8rem;">
-                This will download your <code>private.pem</code> file. Keep it safe!
+                Run this command in your terminal. It will generate keys on your machine and securely register the
+                public key.
             </p>
         </div>
         {% else %}
