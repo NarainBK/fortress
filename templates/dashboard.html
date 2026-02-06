@@ -271,12 +271,19 @@
                     <summary class="text-muted" style="cursor: pointer; font-size: 0.8rem;">Lost your private key?
                     </summary>
                     <div class="mt-sm">
-                        <form action="/generate-keys" method="POST">
-                            <button type="submit" class="btn btn-danger btn-sm"
-                                onclick="return confirm('Warning: This will invalidate your old private key. Continue?');">
-                                Regenerate Key Pair
-                            </button>
-                        </form>
+                        <p class="text-sm">
+                            Simply run the setup command again:
+                        </p>
+                        <div class="terminal" style="text-align: left; margin: 5px 0;">
+                            <div class="terminal-line">
+                                <span style="color: var(--neon-purple);">$</span>
+                                <span class="font-mono" style="color: var(--text-primary);">python client_setup.py {{
+                                    user.username }}</span>
+                            </div>
+                        </div>
+                        <p class="text-muted" style="font-size: 0.7rem;">
+                            This will overwrite your old key on the server.
+                        </p>
                     </div>
                 </details>
             </div>
