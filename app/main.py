@@ -263,6 +263,59 @@ async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/", status_code=302)
 
+# --- Key Registration Models ---
+class KeyRegistrationPayload(BaseModel):
+    username: str
+    public_key: str  # PEM format
+    signature: str   # Base64 encoded PoP signature
+
+# --- Key Registration Endpoint (TOFU) ---
+@app.post("/register-key")
+async def register_key(payload: KeyRegistrationPayload):
+    """
+    Trust-On-First-Use (TOFU) Key Registration.
+    Verifies Proof-of-Possession (PoP) before trusting the key.
+    """
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == payload.username)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Security Check: Role must be Developer
+        if user.role != UserRole.DEVELOPER:
+             raise HTTPException(status_code=403, detail="Only developers can register keys")
+
+        # Security Check: Verify Proof-of-Possession
+        try:
+            # Load the candidate public key
+            public_key = crypto_serialization.load_pem_public_key(payload.public_key.encode('utf-8'))
+            
+            # Verify the signature (User signed their own username)
+            signature_bytes = base64.b64decode(payload.signature)
+            if not CryptoUtils.verify_signature(public_key, payload.username.encode('utf-8'), signature_bytes):
+                raise HTTPException(status_code=400, detail="Proof-of-Possession failed: Invalid signature")
+                
+        except Exception as e:
+             # print(f"DEBUG: {e}") 
+             raise HTTPException(status_code=400, detail=f"Invalid Key or Signature format: {str(e)}")
+
+        # TOFU: Trust and Save
+        # 1. Save Public Key to disk
+        keys_dir = Path("keys")
+        keys_dir.mkdir(exist_ok=True)
+        key_filename = f"{user.username}_public.pem"
+        key_path = keys_dir / key_filename
+        
+        with open(key_path, "wb") as f:
+            f.write(payload.public_key.encode('utf-8'))
+            
+        # 2. Update User Record
+        user.public_key_path = str(key_path.absolute())
+        db.add(user)
+        db.commit()
+        
+        return {"status": "success", "message": f"Key registered for {user.username}"}
+
 # --- Upload Endpoint ---
 class UploadPayload(BaseModel):
     filename: str
